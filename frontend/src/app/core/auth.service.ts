@@ -1,61 +1,66 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, tap } from 'rxjs';
-import { User } from './models';
+import { Observable, tap } from 'rxjs';
+import { Router } from '@angular/router';
+import { API_CONFIG } from './config';
 
-interface TokenResponse {
-  accessToken: string;
+export interface AuthResponse {
+  token: string;
   tokenType: string;
-  user: User;
+  userId: string;
+  fullName: string;
+  email: string;
+  role: string;
+}
+
+export interface RegistrationResponse {
+  userId: string;
+  fullName: string;
+  email: string;
+  role: string;
 }
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly userSubject = new BehaviorSubject<User | null>(this.readUser());
-  readonly user$ = this.userSubject.asObservable();
+  private readonly base = API_CONFIG.authUrl;
 
-  constructor(private readonly http: HttpClient) {}
+  readonly role = signal<string | null>(sessionStorage.getItem('foodflow_role'));
+  readonly userName = signal<string | null>(sessionStorage.getItem('foodflow_name'));
 
-  get user(): User | null {
-    return this.userSubject.value;
+  constructor(private http: HttpClient, private router: Router) {}
+
+  login(email: string, password: string): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.base}/login`, { email, password })
+      .pipe(tap(r => this.save(r)));
   }
 
-  get token(): string | null {
-    return localStorage.getItem('foodflow.token');
+  register(fullName: string, email: string, password: string, applicationRole = 'CUSTOMER', restaurantName?: string): Observable<RegistrationResponse> {
+    return this.http.post<RegistrationResponse>(`${this.base}/register`, {
+      fullName, email, password, applicationRole, restaurantName
+    });
   }
 
-  get isAuthenticated(): boolean {
-    return !!this.token;
+  private save(r: AuthResponse) {
+    sessionStorage.setItem('foodflow_token', r.token);
+    sessionStorage.setItem('foodflow_role', r.role);
+    sessionStorage.setItem('foodflow_user_id', r.userId);
+    sessionStorage.setItem('foodflow_name', r.fullName);
+    this.role.set(r.role);
+    this.userName.set(r.fullName);
   }
 
-  login(email: string, password: string): Observable<TokenResponse> {
-    return this.http.post<TokenResponse>('/api/auth/login', { email, password }).pipe(
-      tap(response => {
-        localStorage.setItem('foodflow.token', response.accessToken);
-        localStorage.setItem('foodflow.user', JSON.stringify(response.user));
-        this.userSubject.next(response.user);
-      })
-    );
+  logout() {
+    sessionStorage.removeItem('foodflow_token');
+    sessionStorage.removeItem('foodflow_role');
+    sessionStorage.removeItem('foodflow_user_id');
+    sessionStorage.removeItem('foodflow_name');
+    this.role.set(null);
+    this.userName.set(null);
+    this.router.navigateByUrl('/login');
   }
 
-  register(fullName: string, email: string, password: string): Observable<User> {
-    return this.http.post<User>('/api/auth/register', { fullName, email, password });
+  token(): string | null {
+    return sessionStorage.getItem('foodflow_token');
   }
 
-  logout(): void {
-    localStorage.removeItem('foodflow.token');
-    localStorage.removeItem('foodflow.user');
-    this.userSubject.next(null);
-  }
-
-  private readUser(): User | null {
-    const raw = localStorage.getItem('foodflow.user');
-    if (!raw) return null;
-    try {
-      return JSON.parse(raw) as User;
-    } catch {
-      localStorage.removeItem('foodflow.user');
-      return null;
-    }
-  }
 }

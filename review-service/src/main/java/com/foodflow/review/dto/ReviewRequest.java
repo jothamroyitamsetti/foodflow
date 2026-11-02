@@ -1,0 +1,1 @@
+package com.foodflow.review.dto;import jakarta.validation.constraints.*;import java.util.UUID;public record ReviewRequest(@NotNull UUID orderId,@NotNull UUID restaurantId,@Min(1) @Max(5) int rating,@Size(max=1000) String comment){}

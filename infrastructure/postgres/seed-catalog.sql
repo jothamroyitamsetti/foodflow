@@ -1,0 +1,2 @@
+-- Optional sample menu items. Run against foodflow_catalog after catalog-service creates its schema.
+-- Prefer creating items through POST /api/catalog/menu after logging in as an appropriately provisioned admin.

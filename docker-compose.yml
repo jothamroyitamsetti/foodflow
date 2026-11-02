@@ -3,19 +3,17 @@ services:
     image: postgres:16-alpine
     container_name: foodflow-postgres
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-foodflow}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-foodflow}
-      POSTGRES_DB: ${POSTGRES_DB:-postgres}
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: postgres
+    ports: ["5432:5432"]
     volumes:
-      - ./database/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
-      - foodflow-postgres:/var/lib/postgresql/data
+      - foodflow_pgdata:/var/lib/postgresql/data
+      - ./infrastructure/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-foodflow} -d ${POSTGRES_DB:-postgres}"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
-      timeout: 5s
+      timeout: 3s
       retries: 20
-
 volumes:
-  foodflow-postgres:
+  foodflow_pgdata:

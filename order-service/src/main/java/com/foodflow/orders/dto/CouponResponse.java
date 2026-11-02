@@ -1,0 +1,1 @@
+package com.foodflow.orders.dto;import java.math.BigDecimal;import java.time.LocalDateTime;import java.util.UUID;public record CouponResponse(UUID id,String code,BigDecimal discountPercent,int maxUses,int usedCount,LocalDateTime expiresAt,boolean active){}
